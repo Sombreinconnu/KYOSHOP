@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type AuthMode = "signin" | "signup";
 
 export function AuthForm() {
+  const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,27 +24,43 @@ export function AuthForm() {
 
     const supabase = createClient();
 
-    if (mode === "signin") {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        setError(signInError.message);
+    try {
+      if (mode === "signin") {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(signInError.message);
+          return;
+        }
+
+        router.push("/dashboard");
+        router.refresh();
+        return;
       }
-    } else {
-      const { error: signUpError } = await supabase.auth.signUp({
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
       });
+
       if (signUpError) {
         setError(signUpError.message);
-      } else {
-        setMessage("Vérifiez votre boîte mail pour confirmer votre compte.");
+        return;
       }
-    }
 
-    setLoading(false);
+      if (data.session) {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+
+      setMessage("Vérifiez votre boîte mail pour confirmer votre compte.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -62,8 +80,9 @@ export function AuthForm() {
       <div className="mb-6 flex rounded-xl border border-zinc-200/80 bg-zinc-50/80 p-1">
         <button
           type="button"
+          disabled={loading}
           onClick={() => setMode("signin")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all disabled:opacity-50 ${
             mode === "signin"
               ? "bg-white text-[#0055FF] shadow-sm"
               : "text-zinc-500 hover:text-zinc-700"
@@ -73,8 +92,9 @@ export function AuthForm() {
         </button>
         <button
           type="button"
+          disabled={loading}
           onClick={() => setMode("signup")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all disabled:opacity-50 ${
             mode === "signup"
               ? "bg-white text-[#7000FF] shadow-sm"
               : "text-zinc-500 hover:text-zinc-700"
@@ -95,11 +115,12 @@ export function AuthForm() {
               id="email"
               type="email"
               required
+              disabled={loading}
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="vous@exemple.com"
-              className="w-full rounded-xl border border-zinc-200/80 bg-white/90 py-3 pl-10 pr-4 text-sm text-zinc-900 outline-none transition focus:border-[#0055FF]/50 focus:ring-2 focus:ring-[#0055FF]/20"
+              className="w-full rounded-xl border border-zinc-200/80 bg-white/90 py-3 pl-10 pr-4 text-sm text-zinc-900 outline-none transition focus:border-[#0055FF]/50 focus:ring-2 focus:ring-[#0055FF]/20 disabled:opacity-60"
             />
           </div>
         </div>
@@ -114,12 +135,13 @@ export function AuthForm() {
               id="password"
               type="password"
               required
+              disabled={loading}
               minLength={6}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-xl border border-zinc-200/80 bg-white/90 py-3 pl-10 pr-4 text-sm text-zinc-900 outline-none transition focus:border-[#7000FF]/50 focus:ring-2 focus:ring-[#7000FF]/20"
+              className="w-full rounded-xl border border-zinc-200/80 bg-white/90 py-3 pl-10 pr-4 text-sm text-zinc-900 outline-none transition focus:border-[#7000FF]/50 focus:ring-2 focus:ring-[#7000FF]/20 disabled:opacity-60"
             />
           </div>
         </div>
@@ -138,10 +160,13 @@ export function AuthForm() {
         <button
           type="submit"
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0055FF] to-[#7000FF] py-3 text-sm font-semibold text-white shadow-lg shadow-[#0055FF]/30 transition hover:opacity-95 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0055FF] to-[#7000FF] py-3 text-sm font-semibold text-white shadow-lg shadow-[#0055FF]/30 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>{mode === "signin" ? "Connexion…" : "Création…"}</span>
+            </>
           ) : mode === "signin" ? (
             "Se connecter"
           ) : (
