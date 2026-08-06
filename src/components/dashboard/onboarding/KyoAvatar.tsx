@@ -11,8 +11,7 @@ export function KyoAvatar({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 
   return (
     <div className={`relative shrink-0 ${dimensions[size]}`}>
-      <div className="absolute inset-0 animate-ping rounded-full bg-[#0055FF]/20" />
-      <div className="absolute inset-1 animate-pulse rounded-full bg-[#7000FF]/15" />
+      <div className="absolute inset-0 rounded-full bg-[#0055FF]/15 motion-safe:animate-pulse" />
       <div
         className={`relative flex items-center justify-center rounded-full bg-gradient-to-br from-[#0055FF] to-[#7000FF] shadow-lg shadow-[#0055FF]/30 ${dimensions[size]}`}
       >
